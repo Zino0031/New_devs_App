@@ -1,6 +1,6 @@
 import json
 import redis.asyncio as redis
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import os
 
 # Initialize Redis client (typically configured centrally).
@@ -26,7 +26,11 @@ async def invalidate_revenue_cache(property_id: str, tenant_id: str, period: str
 
 
 async def get_revenue_summary(
-    property_id: str, tenant_id: str, period: str = "all"
+    property_id: str,
+    tenant_id: str,
+    period: str = "all",
+    month: Optional[int] = None,
+    year: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Fetches revenue summary, utilizing caching to improve performance.
@@ -35,6 +39,13 @@ async def get_revenue_summary(
     before being returned, so a poisoned or legacy entry can never be served to
     a different client.
     """
+    if period != "all" and month is None and year is None:
+        try:
+            year_string, month_string = period.split("-")
+            year, month = int(year_string), int(month_string)
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"Invalid revenue period: {period}") from exc
+
     cache_key = revenue_cache_key(property_id, tenant_id, period)
 
     cached = await redis_client.get(cache_key)
@@ -56,7 +67,7 @@ async def get_revenue_summary(
     # Revenue calculation is delegated to the reservation service.
     from app.services.reservations import calculate_total_revenue
 
-    result = await calculate_total_revenue(property_id, tenant_id)
+    result = await calculate_total_revenue(property_id, tenant_id, month=month, year=year)
     result["period"] = period
 
     # Cache the result for 5 minutes under the tenant-scoped key.
