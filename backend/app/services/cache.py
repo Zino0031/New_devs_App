@@ -16,7 +16,8 @@ def revenue_cache_key(property_id: str, tenant_id: str, period: str = "all") -> 
     (see the composite primary key on properties), so sharing a key by property
     alone leaks one client's totals to another client.
     """
-    return f"revenue:v2:{tenant_id}:{property_id}:{period}"
+    # v3 entries carry exact integer cents; v2 entries had float-prone totals.
+    return f"revenue:v3:{tenant_id}:{property_id}:{period}"
 
 
 async def invalidate_revenue_cache(property_id: str, tenant_id: str, period: str = "all") -> None:

@@ -37,12 +37,13 @@ async def get_dashboard_summary(
             detail="Revenue summary did not match the requested tenant/property",
         )
 
-    total_revenue_float = float(revenue_data['total'])
-
+    # Keep money as an exact decimal string (plus integer cents) instead of a
+    # binary float, which can drift by a cent during display rounding.
     return {
         "property_id": revenue_data['property_id'],
         "period": revenue_data.get("period", period),
-        "total_revenue": total_revenue_float,
+        "total_revenue": revenue_data['total'],
+        "total_revenue_cents": revenue_data.get('total_cents'),
         "currency": revenue_data['currency'],
         "reservations_count": revenue_data['count']
     }

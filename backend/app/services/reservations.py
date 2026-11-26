@@ -1,10 +1,18 @@
 import logging
 from datetime import datetime, timezone as dt_timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any, Optional, Tuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 logger = logging.getLogger(__name__)
+
+CENT = Decimal("0.01")
+
+
+def _money(value: Decimal) -> Tuple[str, int]:
+    """Return an exact 2-decimal string and an integer cent amount."""
+    quantized = value.quantize(CENT, rounding=ROUND_HALF_UP)
+    return f"{quantized:.2f}", int(quantized * 100)
 
 
 def _next_month(year: int, month: int) -> Tuple[int, int]:
@@ -122,20 +130,23 @@ async def calculate_total_revenue(
             row = result.fetchone()
 
             if row:
-                total_revenue = Decimal(str(row.total_revenue))
+                total_string, total_cents = _money(Decimal(str(row.total_revenue)))
                 return {
                     "property_id": property_id,
                     "tenant_id": tenant_id,
-                    "total": str(total_revenue),
+                    "total": total_string,
+                    "total_cents": total_cents,
                     "currency": "USD",
                     "count": row.reservation_count,
                     "source": "database",
                 }
 
+            zero_string, zero_cents = _money(Decimal("0"))
             return {
                 "property_id": property_id,
                 "tenant_id": tenant_id,
-                "total": "0",
+                "total": zero_string,
+                "total_cents": zero_cents,
                 "currency": "USD",
                 "count": 0,
                 "source": "database",
