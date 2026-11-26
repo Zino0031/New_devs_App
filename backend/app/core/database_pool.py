@@ -1,6 +1,5 @@
 import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.pool import QueuePool
 import logging
 from ..config import settings
 
@@ -25,7 +24,6 @@ class DatabasePool:
 
             self.engine = create_async_engine(
                 database_url,
-                poolclass=QueuePool,
                 pool_size=settings.database_pool_size,
                 max_overflow=settings.database_max_overflow,
                 pool_pre_ping=True,  # Validate connections
@@ -51,8 +49,13 @@ class DatabasePool:
         if self.engine:
             await self.engine.dispose()
     
-    async def get_session(self) -> AsyncSession:
-        """Get database session from pool"""
+    def get_session(self) -> AsyncSession:
+        """Get an async session from the pool.
+
+        This must be a normal method: async_sessionmaker() returns an
+        AsyncSession that is used with `async with`, so marking this async
+        would return a coroutine instead.
+        """
         if not self.session_factory:
             raise Exception("Database pool not initialized")
         return self.session_factory()

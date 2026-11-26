@@ -37,7 +37,7 @@ async def _month_bounds_utc(
         text("""
             SELECT timezone
             FROM properties
-            WHERE property_id = :property_id AND tenant_id = :tenant_id
+            WHERE id = :property_id AND tenant_id = :tenant_id
         """),
         {"property_id": property_id, "tenant_id": tenant_id},
     )
