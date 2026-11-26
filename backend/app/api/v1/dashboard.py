@@ -14,7 +14,16 @@ async def get_dashboard_summary(
     tenant_id = getattr(current_user, "tenant_id", "default_tenant") or "default_tenant"
     
     revenue_data = await get_revenue_summary(property_id, tenant_id)
-    
+
+    if (
+        revenue_data.get("tenant_id") != tenant_id
+        or revenue_data.get("property_id") != property_id
+    ):
+        raise HTTPException(
+            status_code=500,
+            detail="Revenue summary did not match the requested tenant/property",
+        )
+
     total_revenue_float = float(revenue_data['total'])
     
     return {
